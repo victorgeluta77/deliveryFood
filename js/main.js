@@ -20,14 +20,23 @@ const sectionShotInfo = document.querySelector('.section-shot-info');
 const modalBody = document.querySelector('.modal-body');
 const modalPrice = document.querySelector('.modal-pricetag');
 const clearCart = document.querySelector('.clear-cart');
+const inputSearch = document.querySelector('.input-search');
 
 let login = localStorage.getItem('gloDelivery');
 
-const cart = JSON.parse(localStorage.getItem('gloDeliveryCart')) || []; // масив для корзини
-console.log('cart: ', cart);
+const cart =[];
+
+ // масив для корзини
+const loadCart = function(){
+  if (localStorage.getItem(login)){
+    JSON.parse(localStorage.getItem(login)).forEach(item=>cart.push(item));
+  }
+};
+
+ // масив для корзини
 
 const saveCart = function(){
-  localStorage.setItem('gloDeliveryCart',JSON.stringify(cart));
+  localStorage.setItem(login,JSON.stringify(cart));
 };
 
 // функція робить запит по url - адресу (файл або API site) та отримує дані
@@ -68,23 +77,21 @@ function returnMain(){
 
 function autorized(login){
   // log out and return on the main page
+
   function logOut(){
 
     returnMain();
-
+    
+    cart.length = '';
     login = null;
     userName.textContent = '';
-
     localStorage.removeItem('gloDelivery');
-
     buttonAuth.style.display = '';
     userName.style.display = '';
     buttonOut.style.display = '';   
     cartButton.style.display = '';
     buttonOut.removeEventListener('click',logOut);
-
     checkAuth(login);
-
   }
 
   console.log('Autorizite!!');
@@ -95,6 +102,7 @@ function autorized(login){
   buttonOut.style.display = 'flex';
   cartButton.style.display = 'flex';
   buttonOut.addEventListener('click',logOut);
+  loadCart();
 }
 // maska  для обробки даних вводу
 function maskInput(string){
@@ -103,15 +111,12 @@ function maskInput(string){
 
 function notAutorized(){
   console.log('NO Autorizite!!');
-  
   function logIn(event){
     event.preventDefault();
 
     if (valid(loginInput.value)){
       // trim() видаляє пробіли зліва і справа
       login = loginInput.value;
-      
-
       localStorage.setItem('gloDelivery',login);
 
       toogleModelAuth();
@@ -127,7 +132,6 @@ function notAutorized(){
     
   }
 
-
   buttonAuth.addEventListener('click',toogleModelAuth);
   closeAuth.addEventListener('click',toogleModelAuth);
   loginInForm.addEventListener('submit',logIn);
@@ -136,8 +140,6 @@ function notAutorized(){
 function checkAuth(login){
    (login) ? autorized(login) : notAutorized();
 }
-
-
 
 
 function createCardRestaurant(restaurant){
@@ -344,6 +346,41 @@ function init(){
           getData('./db/partners.json').then(function(data){
             data.forEach(createCardRestaurant);
            });
+          
+          inputSearch.addEventListener('keydown',(event)=>{
+              if(event.keyCode === 13){
+                const target = event.target;
+                const value = target.value;
+                
+                const goods =[];
+
+                getData('./db/partners.json')
+                    .then(data=>{
+                      const products = data.map(item=>item.products);
+                      console.log(products);
+                      products.forEach((product)=>{
+                        getData(`./db/${product}`)
+                          .then(data=>{
+                                goods.push(...data);
+                                console.log(goods);
+                                const searchGoods = goods.filter(function(item){
+                                  return item.name.toLowerCase().includes(value.toLowerCase());
+                                });
+                                console.log('searchGoods: ', searchGoods);
+                                cardsMenu.textContent = '';
+                                containerPromo.classList.add('hide');
+                                restaurants.classList.add('hide');
+                                menu.classList.remove('hide');
+                                
+                                return searchGoods;
+                          })
+                          .then(data=>{
+                            data.forEach(createCardGood);
+                          });
+                      })
+                    }) 
+              }
+          })
 
           cardsRestautants.addEventListener('click',openGoods);
 
@@ -370,7 +407,7 @@ function init(){
 //  swiper - program for making  slider
           new Swiper('.swiper-container',{
               loop: true,
-              speed: 1000,
+              speed: 500,
               autoplay: true,
               spaceBetween: 50,
           });
