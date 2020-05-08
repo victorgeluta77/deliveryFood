@@ -16,9 +16,14 @@ const restaurants = document.querySelector('.restaurants');
 const menu = document.querySelector('.menu');
 const logo = document.querySelector('.logo');
 const cardsMenu = document.querySelector('.cards-menu');
-const sectionHeading = document.querySelector('.section-heading');
+const sectionShotInfo = document.querySelector('.section-shot-info');
+const modalBody = document.querySelector('.modal-body');
+const modalPrice = document.querySelector('.modal-pricetag');
+const clearCart = document.querySelector('.clear-cart');
 
 let login = localStorage.getItem('gloDelivery');
+
+const cart = []; // масив для корзини
 
 // функція робить запит по url - адресу (файл або API site) та отримує дані
 const getData = async function(url){
@@ -64,6 +69,7 @@ function autorized(login){
     buttonAuth.style.display = '';
     userName.style.display = '';
     buttonOut.style.display = '';   
+    cartButton.style.display = '';
     buttonOut.removeEventListener('click',logOut);
 
     checkAuth(login);
@@ -75,8 +81,8 @@ function autorized(login){
   userName.textContent = login;
   buttonAuth.style.display = 'none';
   userName.style.display = 'inline';
-  buttonOut.style.display = 'block';
-
+  buttonOut.style.display = 'flex';
+  cartButton.style.display = 'flex';
   buttonOut.addEventListener('click',logOut);
 }
 // maska  для обробки даних вводу
@@ -164,18 +170,18 @@ function createCardRestaurant(restaurant){
 };
 
 
-function creatSectionHeading({ description,id,image,name,price }){
-
-    sectionHeading.insertAdjacentHTML('beforeend',`
-                <h2 class="section-title restaurant-title">Пицца Плюс</h2>
+function creatSectionHeading({ image,kitchen,name,price,products,stars,time_of_delivery }){
+                const cardHeard = `
+                <h2 class="section-title restaurant-title">${name}</h2>
                 <div class="card-info">
                   <div class="rating">
-                    4.5
+                    ${stars}
                   </div>
-                  <div class="price">От 90 &#8372</div>
-                  <div class="category">Пицца</div>
+                  <div class="price">От ${price*0.1} &#8372</div>
+                  <div class="category">${kitchen}</div>
                 </div>
-                `);
+                `;
+                sectionShotInfo.insertAdjacentHTML('beforeend',cardHeard);
 
 }
 
@@ -187,7 +193,7 @@ function createCardGood({ description,id,image,name,price }){
   const card = document.createElement('div');
   card.className = 'card';
   card.insertAdjacentHTML('beforeend',`
-                  <img src="${image}" alt="image" class="card-image"/>
+                  <img src="${image}" alt="${name}" class="card-image"/>
                   <div class="card-text">
                     <div class="card-heading">
                       <h3 class="card-title card-title-reg">${name}</h3>
@@ -197,11 +203,11 @@ function createCardGood({ description,id,image,name,price }){
                       </div>
                     </div>
                     <div class="card-buttons">
-                      <button class="button button-primary button-add-cart">
+                      <button class="button button-primary button-add-cart" id = "${id}">
                         <span class="button-card-text">В корзину</span>
                         <span class="button-cart-svg"></span>
                       </button>
-                      <strong class="card-price-bold">${price*0.1} &#8372</strong>
+                      <strong class="card-price">${price*0.1} &#8372</strong>
                     </div>
                   </div>
   `);
@@ -220,8 +226,7 @@ function openGoods(event){
         const restaurant = target.closest('.card-restaurant');
         if (restaurant) {
 
-          console.log(restaurant.dataset.products);
-
+          sectionShotInfo.textContent = '';
           cardsMenu.textContent = '';
           containerPromo.classList.add('hide');
           restaurants.classList.add('hide');
@@ -230,8 +235,10 @@ function openGoods(event){
           getData(`./db/${restaurant.dataset.products}`).then(function(data){
             data.forEach(createCardGood);
            });
-          getData(`./db/${restaurant.dataset.products}`).then(function(data){
-            console.log(data);
+          getData(`./db/partners.json`).then(function(data){
+            data.forEach(elem =>{
+              if(elem.products == restaurant.dataset.products ) creatSectionHeading(elem); 
+            });
            });
 
         }
@@ -248,7 +255,77 @@ function openGoods(event){
 
 // обробники
 
+function addToCart(event){
+   const target = event.target;
 
+   const buttonAddToCard = target.closest('.button-add-cart');
+
+   if (buttonAddToCard){
+     const card = target.closest('.card');
+     const title = card.querySelector('.card-title-reg').textContent;
+     const cost = card.querySelector('.card-price').textContent;
+     const id = buttonAddToCard.id;
+
+     const food = cart.find(elem => {
+       return elem.id ===id;
+     });
+
+     if(food) food.count +=1; else{
+       cart.push({
+       id,
+       title,
+       cost,
+       count : 1
+     });
+     };
+   };
+};
+
+function renderCart(){
+    modalBody.textContent = "";
+
+    cart.forEach(({id,title,cost,count})=>{
+
+       const itemCart = `
+              <div class="food-row">
+              <span class="food-name">${title}</span>
+              <strong class="food-price">${cost}</strong>
+              <div class="food-counter">
+                <button class="counter-button counter-minus" data-id =${id}>-</button>
+                <span class="counter">${count}</span>
+                <button class="counter-button counter-plus" data-id =${id}>+</button>
+              </div>
+            </div>
+       `;
+      modalBody.insertAdjacentHTML('afterbegin',itemCart);
+
+    });
+
+    const totalPrice = cart.reduce((result,item)=>{
+     return result + parseFloat(item.cost)*item.count},0);
+    modalPrice.innerHTML = `${totalPrice} &#8372`;
+
+}
+
+function changeCount(event){
+     const target = event.target;
+
+     if(target.classList.contains('counter-minus')){
+        const food = cart.find(item=>item.id === target.dataset.id );
+        food.count--;
+        if (food.count === 0) {
+          cart.splice(cart.indexOf(food),1);
+        };
+        renderCart();
+     };
+
+     if(target.classList.contains('counter-plus')){
+      const food = cart.find(item=>item.id === target.dataset.id );
+      food.count++;
+      renderCart();
+     };
+
+}
 
 function init(){
           getData('./db/partners.json').then(function(data){
@@ -257,9 +334,21 @@ function init(){
 
           cardsRestautants.addEventListener('click',openGoods);
 
+          cardsMenu.addEventListener('click',addToCart);
+
+          modalBody.addEventListener('click',changeCount);
+
+          clearCart.addEventListener('click',()=>{
+              cart.length = 0;
+              renderCart();
+          });
+
           logo.addEventListener('click',returnMain);
 
-          cartButton.addEventListener("click", toggleModal);
+          cartButton.addEventListener("click", ()=>{
+            renderCart();
+            toggleModal();
+          });
 
           close.addEventListener("click", toggleModal);
 
