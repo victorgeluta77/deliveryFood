@@ -23,7 +23,12 @@ const clearCart = document.querySelector('.clear-cart');
 
 let login = localStorage.getItem('gloDelivery');
 
-const cart = []; // масив для корзини
+const cart = JSON.parse(localStorage.getItem('gloDeliveryCart')) || []; // масив для корзини
+console.log('cart: ', cart);
+
+const saveCart = function(){
+  localStorage.setItem('gloDeliveryCart',JSON.stringify(cart));
+};
 
 // функція робить запит по url - адресу (файл або API site) та отримує дані
 const getData = async function(url){
@@ -37,6 +42,12 @@ const getData = async function(url){
 };
 
 getData('./db/partners.json');
+
+//  перевірка логіну на правельність введення = валідація повертає true or false
+const valid = function(str){
+  const nameReg = /^[а-яА-ЯёЁa-zA-Z0-9]{1,20}$/;
+  return nameReg.test(str);
+}
 
 function toggleModal() {
   modal.classList.toggle("is-open");
@@ -96,7 +107,7 @@ function notAutorized(){
   function logIn(event){
     event.preventDefault();
 
-    if (maskInput(loginInput.value)){
+    if (valid(loginInput.value)){
       // trim() видаляє пробіли зліва і справа
       login = loginInput.value;
       
@@ -111,6 +122,7 @@ function notAutorized(){
       checkAuth(login);
     } else {
       loginInput.style.borderColor = 'orange';
+      loginInput.value = '';
     }
     
   }
@@ -279,6 +291,7 @@ function addToCart(event){
      });
      };
    };
+   saveCart();
 };
 
 function renderCart(){
@@ -324,7 +337,7 @@ function changeCount(event){
       food.count++;
       renderCart();
      };
-
+    saveCart();
 }
 
 function init(){
@@ -354,10 +367,12 @@ function init(){
 
           checkAuth(login);
 
-
+//  swiper - program for making  slider
           new Swiper('.swiper-container',{
               loop: true,
-              slidePerView: 1,
+              speed: 1000,
+              autoplay: true,
+              spaceBetween: 50,
           });
 }
 
