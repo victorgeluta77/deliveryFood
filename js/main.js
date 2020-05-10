@@ -362,7 +362,6 @@ function init(){
                         getData(`./db/${product}`)
                           .then(data=>{
                                 goods.push(...data);
-                                console.log(goods);
                                 const searchGoods = goods.filter(function(item){
                                   return item.name.toLowerCase().includes(value.toLowerCase());
                                 });
@@ -375,7 +374,12 @@ function init(){
                                 return searchGoods;
                           })
                           .then(data=>{
-                            data.forEach(createCardGood);
+                            console.log(data);
+                            if (data.length) data.forEach(createCardGood);
+                              else {
+                                const responsSeach = `<h2>По даному запиту нічого не виявлено. Спробуйте ще ...</h2>`;
+                                cardsMenu.insertAdjacentHTML('beforeend', responsSeach);
+                              }
                           });
                       })
                     }) 
